@@ -20,13 +20,10 @@ class Dataset(Serializable):
     def __init__(self, **kwargs):
         """
         init is designed to finish following steps:
-
         - init the sub instance and the state of the dataset(info to prepare the data)
             - The name of essential state for preparing data should not start with '_' so that it could be serialized on disk when serializing.
-
         - setup data
             - The data related attributes' names should start with '_' so that it will not be saved on disk when serializing.
-
         The data could specify the info to calculate the essential data for preparation
         """
         self.setup_data(**kwargs)
@@ -41,15 +38,10 @@ class Dataset(Serializable):
     def setup_data(self, **kwargs):
         """
         Setup the data.
-
         We split the setup_data function for following situation:
-
         - User have a Dataset object with learned status on disk.
-
         - User load the Dataset object from the disk.
-
         - User call `setup_data` to load new data.
-
         - User prepare data for model based on previous status.
         """
 
@@ -59,9 +51,7 @@ class Dataset(Serializable):
         The parameters should specify the scope for the prepared data
         The method should:
         - process the data
-
         - return the processed data
-
         Returns
         -------
         object:
@@ -72,12 +62,9 @@ class Dataset(Serializable):
 class DatasetH(Dataset):
     """
     Dataset with Data(H)andler
-
     User should try to put the data preprocessing functions into handler.
     Only following data processing functions should be placed in Dataset:
-
     - The processing is related to specific model.
-
     - The processing is related to data split.
     """
 
@@ -90,22 +77,16 @@ class DatasetH(Dataset):
     ):
         """
         Setup the underlying data.
-
         Parameters
         ----------
         handler : Union[dict, DataHandler]
             handler could be:
-
             - instance of `DataHandler`
-
             - config of `DataHandler`.  Please refer to `DataHandler`
-
         segments : dict
             Describe the options to segment the data.
             Here are some examples:
-
             .. code-block::
-
                 1) 'segments': {
                         'train': ("2008-01-01", "2014-12-31"),
                         'valid': ("2017-01-01", "2020-08-01",),
@@ -124,20 +105,15 @@ class DatasetH(Dataset):
     def config(self, handler_kwargs: dict = None, **kwargs):
         """
         Initialize the DatasetH
-
         Parameters
         ----------
         handler_kwargs : dict
             Config of DataHandler, which could include the following arguments:
-
             - arguments of DataHandler.conf_data, such as 'instruments', 'start_time' and 'end_time'.
-
         kwargs : dict
             Config of DatasetH, such as
-
             - segments : dict
                 Config of segments which is same as 'segments' in self.__init__
-
         """
         if handler_kwargs is not None:
             self.handler.config(**handler_kwargs)
@@ -148,16 +124,12 @@ class DatasetH(Dataset):
     def setup_data(self, handler_kwargs: dict = None, **kwargs):
         """
         Setup the Data
-
         Parameters
         ----------
         handler_kwargs : dict
             init arguments of DataHandler, which could include the following arguments:
-
             - init_type : Init Type of Handler
-
             - enable_cache : whether to enable cache
-
         """
         super().setup_data(**kwargs)
         if handler_kwargs is not None:
@@ -171,7 +143,6 @@ class DatasetH(Dataset):
     def _prepare_seg(self, slc, **kwargs):
         """
         Give a query, retrieve the according data
-
         Parameters
         ----------
         slc : please refer to the docs of `prepare`
@@ -191,17 +162,13 @@ class DatasetH(Dataset):
     ) -> Union[List[pd.DataFrame], pd.DataFrame]:
         """
         Prepare the data for learning and inference.
-
         Parameters
         ----------
         segments : Union[List[Text], Tuple[Text], Text, slice]
             Describe the scope of the data to be prepared
             Here are some examples:
-
             - 'train'
-
             - ['train', 'valid']
-
         col_set : str
             The col_set will be passed to self.handler when fetching data.
             TODO: make it automatic:
@@ -210,17 +177,14 @@ class DatasetH(Dataset):
         data_key : str
             The data to fetch:  DK_*
             Default is DK_I, which indicate fetching data for **inference**.
-
         kwargs :
             The parameters that kwargs may contain:
                 flt_col : str
                     It only exists in TSDatasetH, can be used to add a column of data(True or False) to filter data.
                     This parameter is only supported when it is an instance of TSDatasetH.
-
         Returns
         -------
         Union[List[pd.DataFrame], pd.DataFrame]:
-
         Raises
         ------
         NotImplementedError:
@@ -275,40 +239,30 @@ class TSDataSampler:
     """
     (T)ime-(S)eries DataSampler
     This is the result of TSDatasetH
-
     It works like `torch.data.utils.Dataset`, it provides a very convenient interface for constructing time-series
     dataset based on tabular data.
     - On time step dimension, the smaller index indicates the historical data and the larger index indicates the future
       data.
-
     If user have further requirements for processing data, user could process them based on `TSDataSampler` or create
     more powerful subclasses.
-
     Known Issues:
     - For performance issues, this Sampler will convert dataframe into arrays for better performance. This could result
       in a different data type
-
-
     Indices design:
         TSDataSampler has a index mechanism to help users query time-series data efficiently.
-
         The definition of related variables:
             data_arr: np.ndarray
                 The original data. it will contains all the original data.
                 The querying are often for time-series of a specific stock.
                 By leveraging this data charactoristics to speed up querying, the multi-index of data_arr is rearranged in (instrument, datetime) order
-
             data_index: pd.MultiIndex with index order <instrument, datetime>
                 it has the same shape with `idx_map`. Each elements of them are expected to be aligned.
-
             idx_map: np.ndarray
                 It is the indexable data. It originates from data_arr, and then filtered by 1) `start` and `end`  2) `flt_data`
                     The extra data in data_arr is useful in following cases
                     1) creating meaningful time series data before `start` instead of padding them with zeros
                     2) some data are excluded by `flt_data` (e.g. no <X, y> sample pair for that index). but they are still used in time-series in X
-
                 Finnally, it will look like.
-
                 array([[  0,   0],
                        [  1,   0],
                        [  2,   0],
@@ -316,20 +270,16 @@ class TSDataSampler:
                        [241, 348],
                        [242, 348],
                        [243, 348]], dtype=int32)
-
                 It list all indexable data(some data only used in historical time series data may not be indexabla), the values are the corresponding row and col in idx_df
             idx_df: pd.DataFrame
                 It aims to map the <datetime, instrument> key to the original position in data_arr
-
                 For example, it may look like (NOTE: the index for a instrument time-series is continoues in memory)
-
                     instrument SH600000 SH600008 SH600009 SH600010 SH600011 SH600015  ...
                     datetime
                     2017-01-03        0      242      473      717      NaN      974  ...
                     2017-01-04        1      243      474      718      NaN      975  ...
                     2017-01-05        2      244      475      719      NaN      976  ...
                     2017-01-06        3      245      476      720      NaN      977  ...
-
             With these two indices(idx_map, idx_df) and original data(data_arr), we can make the following queries fast (implemented in __getitem__)
             (1) Get the i-th indexable sample(time-series):   (indexable sample index) -> [idx_map] -> (row col) -> [idx_df] -> (index in data_arr)
             (2) Get the specific sample by <datetime, instrument>:  (<datetime, instrument>, i.e. <row, col>) -> [idx_df] -> (index in data_arr)
@@ -354,7 +304,6 @@ class TSDataSampler:
     ):
         """
         Build a dataset which looks like torch.data.utils.Dataset.
-
         Parameters
         ----------
         data : pd.DataFrame
@@ -377,7 +326,6 @@ class TSDataSampler:
             a column of data(True or False) to filter data. Its index order is <"datetime", "instrument">
             None:
                 kepp all data
-
         """
         self.start = start
         self.end = end
@@ -390,6 +338,11 @@ class TSDataSampler:
         )  # data is useless since it's passed to a transposed one, hard code to free the memory of this dataframe to avoid three big dataframe in the memory(including: data, self.data, self.data_arr)
 
 
+        # the data type will be changed
+        # The index of usable data is between start_idx and end_idx
+        self.idx_df, self.idx_map = self.build_index(self.data)
+        self.data_index = deepcopy(self.data.index)
+        
         kwargs = {"object": self.data}
         if dtype is not None:
             kwargs["dtype"] = dtype
@@ -490,12 +443,10 @@ class TSDataSampler:
     def build_index(data: pd.DataFrame) -> Tuple[pd.DataFrame, dict]:
         """
         The relation of the data
-
         Parameters
         ----------
         data : pd.DataFrame
             A DataFrame with index in order <instrument, datetime>
-
                                       RSQR5     RESI5     WVMA5    LABEL0
             instrument datetime
             SH600000   2017-01-03  0.016389  0.461632 -1.154788 -0.048056
@@ -503,7 +454,6 @@ class TSDataSampler:
                        2017-01-05  0.507540 -0.535493 -1.099665 -0.644983
                        2017-01-06 -1.267771 -0.669685 -1.636733  0.295366
                        2017-01-09  0.339346  0.074317 -0.984989  0.765540
-
         Returns
         -------
         Tuple[pd.DataFrame, dict]:
@@ -536,14 +486,12 @@ class TSDataSampler:
     def _get_indices(self, row: int, col: int) -> np.array:
         """
         get series indices of self.data_arr from the row, col indices of self.idx_df
-
         Parameters
         ----------
         row : int
             the row in self.idx_df
         col : int
             the col in self.idx_df
-
         Returns
         -------
         np.array:
@@ -565,12 +513,10 @@ class TSDataSampler:
     def _get_row_col(self, idx) -> Tuple[int]:
         """
         get the col index and row index of a given sample index in self.idx_df
-
         Parameters
         ----------
         idx :
             the input of  `__getitem__`
-
         Returns
         -------
         Tuple[int]:
@@ -598,16 +544,12 @@ class TSDataSampler:
         """
         # We have two method to get the time-series of a sample
         tsds is a instance of TSDataSampler
-
         # 1) sample by int index directly
         tsds[len(tsds) - 1]
-
         # 2) sample by <datetime,instrument> index
         tsds['2016-12-31', "SZ300315"]
-
         # The return value will be similar to the data retrieved by following code
         df.loc(axis=0)['2015-01-01':'2016-12-31', "SZ300315"].iloc[-30:]
-
         Parameters
         ----------
         idx : Union[int, Tuple[object, str]]
@@ -642,12 +584,8 @@ class TSDataSampler:
 class TSDatasetH(DatasetH):
     """
     (T)ime-(S)eries Dataset (H)andler
-
-
     Convert the tabular data to Time-Series data
-
     Requirements analysis
-
     The typical workflow of a user to get time-series data for an sample
     - process features
     - slice proper data from data handler:  dimension of sample <feature, >
