@@ -266,7 +266,7 @@ class MLflowRecorder(Recorder):
         # construct from mlflow run
         if mlflow_run is not None:
             assert isinstance(mlflow_run, mlflow.entities.run.Run), "Please input with a MLflow Run object."
-            self.name = mlflow_run.data.tags["mlflow.runName"]
+            # self.name = mlflow_run.data.tags["mlflow.runName"]
             self.id = mlflow_run.info.run_id
             self.status = mlflow_run.info.status
             self.start_time = (
